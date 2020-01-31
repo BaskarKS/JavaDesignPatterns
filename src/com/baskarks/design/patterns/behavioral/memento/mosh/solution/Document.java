@@ -1,4 +1,4 @@
-package com.baskarks.design.patterns.behavioral.memento.mosh;
+package com.baskarks.design.patterns.behavioral.memento.mosh.solution;
 
 public class Document {
   private String content;
