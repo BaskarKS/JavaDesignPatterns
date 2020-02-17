@@ -6,8 +6,25 @@ public class ArticlesDialogBox {
   private Button saveButton = new Button();
 
   public ArticlesDialogBox() {
+    /*
+    * the concrete colleagues are anonymous objects which
+    * are communicated back from concrete mediators (Button
+    * TextBox, ListBox). mediator (UIControl have all
+    * instances of colleague which are registered here)
+    * */
     articlesListBox.addEventHandler(this::articleSelected);
     titleTextBox.addEventHandler(this::titleChanged);
+/*
+    //or
+    titleTextBox.addEventHandler(new EventHandler() {
+      @Override
+      public void handle() {
+        titleChanged();
+      }
+    });
+    //or
+    titleTextBox.addEventHandler(() -> titleChanged());
+*/
   }
 
   public void simulateUserInteraction() {
