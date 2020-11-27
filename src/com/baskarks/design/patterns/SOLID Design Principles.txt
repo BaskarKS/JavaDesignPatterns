@@ -1,0 +1,1311 @@
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+1. SINGLE RESPONSIBILITY PRINCIPLE
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+
+Statement -1 : "Each class in our system should have just only one single Resposibility."
+what responsibility means really? no clear defenition of "Responsibility"
+Statement -2 : Class should be able to describe what each class does without saying / using word
+              "and" (not-practical). 
+Statement -3: Each class should have only one reason to change. (Practical)
+              (can't think of more than one reason for a class to change with
+              current situation / right now)
+              (Enables collaboration) - another developer during code review
+              can come up with a different potential reason for a class to change,
+              those reasons may be impractical to you, but can discuss with the
+              product manager about the reason is valid and can happen in future
+              or not and conclude on the contradiction disagreement.
+ 
+ 				"RESPONSIBILITY = REASON TO CHANGE"
+
+ 				public class Employee {
+ 					public double calculateMonthlySalary() {
+ 						HoursReport report = produceMonthlyHoursReport();
+ 						// calculate salary based on the above report
+ 					}
+ 					pulbic HoursReport produceMonthlyHoursReport() {
+
+ 					}
+ 					public void saveModification() {
+
+ 					}
+ 				}
+ 				Reason for Employee class to Change:
+ 				1. Finance Dept will ask in future to account/calculate new type of employee benefits.
+ 				(calculateMOnthlySalary() method will get affected with the change. )
+ 				2. Human resources dept may ask in future to change hours report format to comply with some
+ 				new regulations. ( produceMonthlyHoursReport() method will get affected).
+ 				3. R&D dept may come up with to migrate to different database in future (saveModification() method
+ 				will get affected)
+ 				* More than one reason(3 reasons / 3 depts come in play) for the employee class to change, SPR violation.
+ 				* if a new feature developed for HR to make modifications in produceMonthlyHoursReport() method(intensional change for new feature)	will indirectly affect the calculateMonthlySalary() method (Caused a sideeffect). Classes which violates single Responsibility principle will grow eventually bigger over time and will lead to cause such side effects. SingleResponsibilityPrinciple leads to
+ 				"Excessive Coupling between unrelated functionalities". Extract individual responsibilities into seperate classes to avoid such problem to occur.
+
+ 				public Employee {
+ 					private final String id;
+ 					public String getId() {
+ 						return id;
+ 					}
+ 				}
+
+ 				public class PaymentService {
+ 					public double calculateMonthlySalary(Employee emp) {
+
+ 					}
+ 				}
+ 				public class WorkHoursReport {
+ 					public HoursReport produceMonthlyHoursReport(Employee emp) {
+
+ 					}
+ 				}
+ 				public class EmployeeDao {  //Dao - Data access object
+ 					public void saveModifications(Employee emp) {
+
+ 					}
+ 				}
+
+ 				* somehow distribute different functionalities among different classes. 
+ 				* Involvement of differnet stake holders (FInance, HR, R&D) in class level functionality is an
+ 				indication of SPR violation. (most of the time, Code cant be traced to specific stake holders)
+
+Example 2:
+	public class AuthManager {
+		private String loggedInUsername = ""
+		public void logIn(String userName, String password) {
+			String hash = hashPassword(password);
+			if (userEntryExistsInDb(userName, hash))
+				loggedInUserName = userName
+		}
+		private userEntryExistsInDb(String userName, String password) {
+
+		}
+		private String hashPassword(String password) {
+
+		}
+		public void logOut() {
+			loggedInUsername = ""
+		}
+	}
+	Reasons to Change: 
+		1. change in Password Hash Algorithm.
+		2. store user Credentials in different form (maybe even different medium, in future checking user credentials can happend as network requests than verifying it from database).
+		
+		* This class violates Single Resposibility principle.
+
+	Modified class based on SRP Principle:
+	public class AuthManager {
+		private String loggedInUsername = ""
+		private PasswordHasher passwordHasher; // object composition
+		private UserDao usersDao; // object composition
+
+		public void logIn(String userName, String password) {
+			String hash = passwordHasher.hashPassword(password);
+			if (usersDao.entryExistsInDb(userName, hash))
+				loggedInUserName = userName
+		}
+		public String getLoggedInUserName() {
+			return loggedInUsername;
+		}
+		public void logOut() {
+			loggedInUsername = ""
+		}
+	}
+
+	* Now change in HashAlorithm will happen in "PasswordHasher" Class.
+	* Now change in storage of User credentials will happen in "UserDao" class
+	* Now this class hold responsibility only for "Log in Flow changes", now it follows SRP.
+
+----------------------------
+Example 3: Karoke Application:
+----------------------------
+	Requirements:
+	* Parse the Lyrics file
+	* Parse the Lyrics timings file
+	* Play karoke video.
+	* Make lyrics overlay the video and keep them in sync with the sound.
+	* Record Singers Voice.
+	* Pause
+	* Stop
+	* Listen to the Recording
+
+			AudioPlayer Class   < ---\
+									  \
+			VideoPlaver Class   <-------------- KarokePlayer  
+                                      /       ( > 2000 Lines)
+			AudioRecorder Class  <---/
+           (Third Party Libraries)
+
+
+    Evaluating Requirements and finding "Reasons to Change":
+     	* Format of Lyrics files / information in Lyrics file / type of Files files 
+		* Format of Lyrics timing files / information in Lyrics timing file / type of File files 
+		* no change in Playing video
+		* Will expect changes in overlay the lyrics on video.
+		* No Change expected in Recording Voice.
+		* No Change expected in Pause.
+		* No Change expected in Stop video
+		* No Change expected in Recoring.
+		* Will expect changes in Recording to overlay with original video with the singing video.
+
+	Change in Functionalities identified:
+	    * Format of Lyrics files / information in Lyrics file / type of Files files 
+		* Format of Lyrics timing files / information in Lyrics timing file / type of File files 
+		* Will expect changes in overlay the lyrics on video.
+		* Will expect changes in Recording to overlay with original video with the singing video.	
+
+	
+
+			AudioPlayer Class   < ---\                                -----> LyricsParser Class
+									  \                              /
+			VideoPlayer Class   <-------------- KarokePlayer --------------> TimingsParser Class
+                                      /       ( > 2000 Lines)        \
+			AudioRecorder Class  <---/								  -----> LyricsTextPlayer Class (Overlay Text)
+           (Third Party Libraries)                                    \    
+                                                                       ----> RecordingManager Class
+                                                                                     ^
+                                                                                     |
+                                                                       		 RecordingPlayer Class
+
+	(Recording Play Back is different feature, Karoke Player functionality is different, Hence Recording
+	Playback is completely decoupled from the actual karoke player implementation and its managed by RecordingManager class. Hence theres no direct dependency between RecordingPlayer and Karoke Player.)
+	(KarokePlayer Delegates the functionalities to the respective classes and collaburates. Its very much use is to encapsulate the business logic of karoke player - Karoke Player is a final State Machine, it just manages the state of the Karoke Player)
+
+	(Once classes are very specific and easily identifiable responsibilities we can figure out the best implementation choices)
+
+    Summary:
+    	* we started with karoke player class that contain too much functionality.
+    	* we analyzed the flows and identified the SRP violations, we extracted the reasons to change into 
+    	standalone classes and established the clear dependency structure between them.
+    	* we identified the karoke player as a final state machine. its was possible to identify the karoke player as FSM only because of extracting the other functionality into seperate classes.
+
+Reusability: (Break Features into smaller classes for better Reuse. This way
+of approach will help of extending functionalities in future without pollution)
+
+A, B, C are functionalities which will never change in future
+classFeature-1 => (Class-A implementation, Class-B implementation)
+classFeature-2 => (Class-A implementation, Class-C implementation)
+classFeature-3 => (Class-C implementation, Class-B implementation)
+causes to re-write the functionalities in different features
+
+Decoupling the functionalities seperately - into total 6 classes
+Class A, Class B, Class C
+Class classFeature-1,Class classFeature-2,Class classFeature-3
+classFeature-1 - composes and uses Class A, B
+classFeature-2 - composes and uses Class A, C
+classFeature-3 - composes and uses Class C, B
+(Break features into smaller classes for easier re-use which promotes re-use and concretize classes to follow
+SRP)
+
+Final Conclusion: (SRP is the most important principle in OODesign) 
+	* "Each class should have one reason to change."
+1. List all requirements
+2. Analyze each item in the list to identify potential reasons to change and identify it as functionalities.
+3. Extract functionalities that change due to different reasons into stand-alone classes
+
+Benefits:
+1. smaller, narrowly focused components
+2. Encapsulation of the most probable changes within specific componenets.(which
+    will help to make future code change at specific classes / spots)
+3. Better implementation decisions (allow us to think to use of various patterns)
+4. Simpler reuse of existing functionality.
+5. More flexibility of the codebase as a whole.
+
+---------------------
+ABSTRACTION
+---------------------
+
+"Abstraction is an alternative representation of a concept that hides irrelevant details and express
+only the properties that we are interested in"
+
+"Transistor" is Abstracted by "Logic Gates" which are again abstracted into "Modules" which are again abstracted
+to construct "CPU". (Each additional abstraction that we introduce which will hide the all other abstractions
+beneath it and exposes to the outside world only the properties that the outside world interested in)
+
+-----------------------------
+Abstractions in OODesign:
+-----------------------------
+
+multiple statements are constituted to methods. Multiple methods are constituted to form Class, Multiple
+classes/object contitute to form Module. Multiple module / packages constitute to form Application.
+
+Statement is most primitive / fundamental concept in source code, its the basic concept / abstraction.
+Methods abstract out statements and expose "coheric operations".
+
+When we combine multiple methods together and get object level abstraction. we hide methods and statements from classes / object and expose functional behaviour.
+
+At module level weexpose domain level. "package by feature". Module  will aggregate multiple objects and expose some coherent view of business domain concept / functional concept with in application.
+
+We constitute multiple modules to form application.
+
+"CLEAN CODE : proper utilization of meaningful and convenient abstractions to manage complexity" which will make software maintenable longtem.
+
+FUNDAMENTAL THEOREM OF COMPUTER SCIENCE: "Can solve any problem by introducing an extra level of indirection(abstraction)" . Too many level of abstractions will also lead to problem of reading code and maintaining it.
+
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+2. OPEN CLOSE PRINCIPLE:
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+software entities (functions, classes, modules) should be open for extension
+but closed for modification
+
+open for extension:
+1. inheritence? (can define a class and subclass it and add some behaviour)
+2. polymorphism? (can have abstraction and define multiple realization)
+3. Adding more code to existing class?.
+
+closed for modification:
+1. NO modification of class source code allowed? then how to refactor code?, how to bug fix?
+2. Requirement changes? (requirement always changes, how to fulfil by not changing source code)
+3. if no class in code base is now allowed to change, how to add new functionality?
+
+Contradiction with the definition of the "OCP" principle definition.
+
+Historical Definition:
+1988: Bertrand Meyer - Object oriented software construction book:
+"Open" defined as: A module[class] is said to be open if its still available
+for extension Eg: It should be possible to expand its set of operations or add
+fields to its DataStructures. As long as you extend the class functionality through inheritence
+its still open for extension.
+
+"Closed" defined as: A module[class] is said to be closed if its "available for
+use by other modules". This assumes that the module has been given a "well-defined,
+stable description" (its interface in the sense of information hiding). At the
+implementation level, closure for a module also implies that you may "compile it
+perhaps store in library", and make it available for others(client) to use.
+
+"No implementation changes after modules released to clients"
+"Should be possible to extend all modules"
+
+"Joshua Bloch" - "Effective Java" => "Design and document for inheritence or
+                                      else prohibit it"
+
+Current Definition of OCP:
+"Robert.C.Martin (Uncle Bob)" - Agile Software development
+How its possible that the behaviour of a module can be modified without changing
+its source code? without changing the module, how can we change what a module
+does?
+
+Answer is Abstraction: in any object oriented programming language its possible to
+create abstractions that are fixed and yet represent an unbounded group of
+possible behaviours . the abstractions are abstract base classes and the unbounded
+group of possible behaviours are represented by all the possible derivative classes.
+							Its possible for a module to manipulate an abstraction, 
+such a module can be closed for modification since it depend on an abstraction that is fixed. 
+Yet the behaviour of that module can be extended by creating new derivatives of the abstraction.
+
+
+* "OCP depend on stable abstractions and modify system's behaviour by providing
+different realizations"
+* OCP is the principle of that governs the usage of polymorphism
+
+OCP Example: Salary Calculator:
+
+public class SalaryCalculator {
+	public Salary calculateSalary(Employee employee) {
+		double taxDeduction = calculateTax(employee);
+		................
+		................
+
+	}
+	private double calculateTax(Employee employee) {
+		switch(employee.getType()) {
+			case FULL_TIME:
+				..........
+				break;
+			case FREELANCE:
+				..........
+				break;
+		}
+	}
+}
+
+* If we expect new type of employees and different type of tax mechanics in future. every time
+a change comes we need to modify this class to support it which may lead to introduce bugs either
+directly / indirectly.
+
+* just followed Single responsibility principle.
+
+public class SalaryCalculator {
+	private TaxCalculator taxCalculator;
+	public Salary calculateSalary(Employee employee) {
+		double taxDeduction = taxCalculator.calculateTax(employee); // deligated tax calculation to TaxCalculator 																	class
+		................
+		................
+
+	}
+}
+
+public class TaxCalculator {
+	private double calculateTax(Employee employee) {
+		switch(employee.getType()) {
+			case FULL_TIME:
+				..........
+				break;
+			case FREELANCE:
+				..........
+				break;
+		}
+	}	
+}
+
+* now we face the same problem of change "TaxCalculator" class offenly because of future changes of new employee
+addition and tax mechanism changes.
+
+// made the change happen into abstraction and different realisation can be implemented and used.
+public interface TaxCalculator {
+	double calculateTax(Employee employee);
+}
+
+public class TaxCalculatorFreeLance implement TaxCalculator {
+	private double calculateTax(Employee employee) {
+		..................implementation for calculating full free lancers
+	}	
+}
+
+public class TaxCalculatorFullTime implement TaxCalculator {
+	private double calculateTax(Employee employee) {
+		.................. implementation for calculating full time employees
+	}	
+}
+
+* infuture if we have new type of employees or new tax calculations we just need to add new realizations of
+TaxCalculator(I) abstraction. The above implementation is a implementation of Strategy Design pattern (its
+predicated on Open close principle)
+
+public class SalaryCalculator {
+	private TaxCalculatorFactory taxCalculatorFactory;
+	public Salary calculateSalary(Employee employee) {
+		TaxCalculator taxCalculator = taxCalculatorFactory.newTaxCalculator(employee.getType())
+		double taxDeduction = taxCalculator.calculateTax(employee); // deligated tax calculation to TaxCalculator 																	class
+		................
+		................
+
+	}
+}
+
+* before it delegates to taxCalculator, it obtains an instance of taxCalculator from taxCalculatorFactory
+
+public class TaxCalculatorFactory {
+	public TaxCalculator newTaxCalculator(EmployeeType employeeType) {
+		switch(employeeType) {
+			case FULL_TIME:
+				return new TaxCalculatorFullTime();
+			case FREELANCE:
+				return new TaxCalculatorFreeLance();
+			default:
+				return new TaxCalculatorDefault();
+		}
+	}
+}
+
+	SalaryCalculator ------------------------> TaxCalculator(I)   (Abstraction)
+        |                                        ^     ^     ^
+        |                                      __|     |     |___
+        |                                     |        |         |  
+        |                                     |        |         |
+        |                                     |        |         |
+		|			 		 TaxCalculatorFreeLance    |     TaxCalculatorFullTime   (Realizations)
+		|                                        ^     |         ^
+		|                                        |     |         |
+		|_____________________________________> TaxCalculatorFactory	(This is the only part of system will 	 
+																		 change on new realization introduced)
+
+* OCP statesthat, prepare system for future change in requirements and make sure the scope of code changes will affect atmost only single class and the change should be very simple to implement.
+
+-----------------------------
+OCP Example-2 KarokePlayer:
+-----------------------------
+Lets just consider evaluating the relationship between KarokePlayer and LyricsParser
+													
+					KarokePlayer --------Uses-----------> LyricsParser
+
+LyricsParser Responsibilities and Reasons to Change:
+----------------------------------------------------
+Responsibilities:
+1. Read songs Lyrics.
+2. Process Lyrics into format expected by karokePlayer.
+
+Reasons to Change:
+1. If the format of the file which we provide lyrics to KarokePlayer changes.
+2. Support mutiple format at the same time.
+
+KarokePlayer ------> LyricsParserFormatsFactory-----> LyricsParser(I)(Abstraction) <--------- LyricsParserFormatOne
+                                                                                ^
+																				 \___________ LyricsParserFormatTwo	
+
+To support Multiple formats on TimingsParser in future, which will be used by Karoke Player:
+----------------------------------------------------------------------------------------------
+
+KarokePlayer ----> TimingsParserFormatsFactory-----> TimingsParser(I)(Abstraction) <----- TimingsParserFormatOne
+                   (Can provide different realization of                        ^
+					TimingsParser(I) to KarokePlayer)           				 \_______ TimingsParserFormatTwo	
+
+
+Investigating LyricsTextPlayer module:
+-------------------------------------
+I am sure the functionality of LyricsTextPlayer will change in Future, but i dont know or am not sure that
+how it will change in future. Should we need to extract abstractions for LyricsTextPlayer like we did for
+LyricsParser and TimingsParser. Think about the "Cost of Abstractions" before providing OCP for a clarity less
+future change module like LyricsTextPlayer.
+
+Cost of Abstractions:
+1. need to write additional code to support abstractions.
+2. Abstractions make your code complex to read.
+3. wrong abstractions can be extremely hard to fix later and also costly to business billing.
+conclusion: "Use abstractions when we really need them".
+
+"The fact that something can change doesnt imply that it will change or that it will change according to your predictions"
+
+
+OCP APPLY FRAMEWORK:
+--------------------
+Factors to notice to apply Open Close principle:
+1. is the anticipated changes related to intrinsic instability of business
+    requirements?
+    Eg of Intirnsic instability of business domain :
+    from taxCalculator application we can very well notice and
+    confident about tax calculations will be sure different for different
+    employees and also we are confident that new types of employees will be added
+    in future because in real world employee there are more than 2 types (permanent,
+    freelancer) of employees are present and tax calculation will vary among them.
+    The above intrinsic instability can be identified by analyzeing the business
+    requirements and predict the changes can happen with high level of confidence.
+    If we were able to identify such intrinsic instability in business requirements
+    then its good to go to support the instabilities using OCP
+
+    (by analyzing could see some requirements will change in business domain. if we are able to predict
+    with high degree of confidence about the future changes. If we are able to identify such changes 
+    then we should prepare to accomodate the instabilities of change in requirements by introducing OCP)
+
+  2. what kind of changes will happen on project like this one?
+  which comes based on experience working on similar projects, will get idea on
+  what kind of changes will come in future.
+
+  3. If the potential change doesnt correspond to point 1 & 2 above dont apply
+  OCP
+
+  4. when requirments change identify opportunities for extraction of meaningful
+  abstractions and then refactor accordingly. ( see the specific region of application
+  could be refactored to accomodate similar changes in the requirements in future
+  , in this case extract the abstractions and apply OCP and prepare for future
+  change. Once we have evidence that a specific requirements / specific part of
+  the application is changing which proves that its very probable to change in
+  future too)
+
+  by looking at the system we realize that there are cases when OCP will be very
+  benefecial using it and there are other cases where we need to wait till the
+  requirements evolve and if we clearly see the evolved requirements will be
+  benefecial with OCP, then we refactor the parts of system to accomodate it
+
+  -------------
+  OCP SUMMARY:
+  -------------
+  """Protect your existing code from a subset of potential future changes that you
+  can predict."""
+
+  application -----> abstraction <----- anticipated changes
+
+  OCP Limitatons:
+  1. not applicable to all classes in our application.
+  2. cant protect from all possible changes
+  3. wrong abstractions can be hard to fix.
+
+  OCP Application Framework:
+  1. Apply OCP initially only when you are certain about the nature of the future changes
+  2. monitor changes in requirements and extract useful abstractions as you go.
+
+* Proper utilization of OCP allows you to provide additional business value quickly
+and safely. 
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+3. LISKOV SUBSTITUTION PRINCIPLE:
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+If S is a subtype of T,
+then objects of Type T should be replaceable with the objects of type S
+without altering any of the desirable properties of the program(correctness / task
+performed)
+
+  parent class (generalization) -> sub class (specialization)
+  Intuitive example:
+  Rectangle (parent) -> Square(Sub class)
+  LSP: In each place where Rectange is used we should be able to use Square too
+
+Quote from Liskov's 1988 Paper:
+Abstractions can be used to encapsulate potential modufications. For Example 
+suppose we want a program to run on different machines. we can accomplish that
+by inventing abstractions that hide the differences between machines so that to
+move the program to a different machine, only those abstractions need to be
+reimplemented. A good design principle is to think about expected modifications 
+and organize the design by using abstractions that encapsulate the changes ( this
+description indicates the Open-Close principle)
+
+The actual Liscov principle is described in 1999-"Behavioural subtyping using invariants
+and constraints" by Barbara Liskov and Jeannette Wing - This paper constitutes the 
+criteria and describes a framework to identify the proper subtype that can be used / 
+replaceable with its super type.
+
+"""Subclassing / suptype doesnt imply/mean a proper subtype relation"""
+
+Every realization / subtype class not necessarily can be the proper substitution in the 
+place of the program where generalization expects. The subtype values can be substituted
+in the place where the program expects the supertype, a subtype can be a proper subtype
+of a supertype and can be allowed to replace the supertype only if it satisfy the LSP
+rules defined to be a proper subtype of a supertype. 
+
+(method rules 5: (signature rules : 3, method rule: 2)), (Properties rule : 2 )=> only
+if the subtype satisfy the above LSP 7 rules its considered as a proper subtype of a super
+type and can be replaced/used at places where a supertype is expected in a program.
+
+LSP Rules:
+Method Signature Rule:
+1. contravariance of arguments: 
+	1. If a subclass implements a method from its superclass(override). then the number of 
+	arguments should be same. (equal no of arguments in both parent and sub-classes)
+	2. the type of each argument in subclass method should be the supertype of the type of
+	the respective argument in super class method. ("dont make subclass methods arguments 
+	more specific than they are in parent class type")
+
+		Service Class <================= ServiceSub class
+		doSomething(ClassArg) <========= doSomething(ClassArgSuper)
+	the passed parameter inheritence hierarchy: ClassArgSuper <===== ClassArg <===== ClassArgSub
+
+	doSomething(ClassArgSub) -> we cant make the parameter type as ClassArgSub, because this
+	will restrict/ not-allow to pass ClassArg / ClassArgSuper type of parameter (can assign
+	a subtype to a super type, but cant assign a super type value to a subtype) 
+
+"make sure, not to change the argument type in subclasses such that they are no longer be 
+substituted for their super classes."
+"Compiler enforces the covariance of arguments in statically-typed programming languages"
+
+2.  CoVariance of Result:
+	1. Either both superclass and subclass methods returns result or neither does.
+	2. If theres a result, then the type of result in the subclass can be subtype of the
+		type of the result in the superclass but it cant be superclass type.
+
+		Service Class <================= ServiceSub class
+		doSomething():ClassArg <========= doSomething():ClassArg  ----------------Valid
+		doSomething():ClassArg <========= doSomething():ClassArgSub --------------Valid
+		doSomething():ClassArg <========= doSomething():ClassArgSuper-------------In Valid
+	the passed parameter inheritence hierarchy: ClassArgSuper <===== ClassArg <===== ClassArgSub
+	Note => "Dont make subclass methods return type mode general!!"
+	"Compiler enforces the covariance of result in statically-typed programming languages"
+
+3. Exception Rule:
+	"Exception thrown by a method in the subclass should be contained in the set of exceptions
+	thrown by the respective method in the super class".
+	Note: "Dont throw new type of exceptions from subclass"
+
+				Client -------------------> Service        <= service can throw "ExceptionOne"
+										   ^            
+										   |
+										ServiceSub    <= serviceSub throws unrelated ExceptionTwo
+
+(client uses service class, service class has subclass which is ServiceSub)										
+(client is aware of exceptionOne and it knows to handled it)
+(client is unaware of ExceptionTwo and it dont know how to handle it hence we cannot substitute 
+servicesub instance to client instead of service instance)
+
+(All exceptions thrown by servicesub must be with in the set of exceptions thrown by service which
+means that all the clients which uses service will be able to handle all the exceptions thrown by
+servicesub)
+
+In statically types languages there are checked(exception rule enforced by compiler) and 
+unchecked exceptions (happend at runtime, not checked by compiler)
+In dynamic typed languages there are only unchecked exceptions
+
+"Basically cant add new type of exceptions in subclasses", which will break the existing functionality 
+which already uses the superclass, cant substitute subclasses in that place.
+
+Eg: KarokePlayer --> LyricsParser(AC) (throws ParseFailedException)
+KarokePlayer is aware of LyricsParser throws ParseFailedException and will handle while using the 
+LyricsPlayer
+
+Eg: KarokePlayer --> LyricsParser(AC) (throws ParseFailedException)
+							^
+							|
+					EncryptedLyricsParser(its a implementation / Realization of LyricsParser
+
+When we introduce EncryptedLyricsParser to KarokePlayer and if EncryptedLyricsParser introduce
+to throw a new exception like "InvalidEncryptionException". KarokePlayer is unaware of this 
+type of exception and it will not be able to handle it if its not a subtype of ParseFailedException.
+
+(If InvalidEncryptionException is not a subtype of ParseFailedException then its a PROBLEM)
+(If InvalidEncryptionException is a subtype of ParseFailedException then theres no PROBLEM)
+
+RULE OF THUMB: "Should not throw new types of exceptions from subtype"
+
+--------------------------------------------------------------------------------------------------
+Method Signature Rules (Abstract Defenition:
+1. contravariance of arguments: subclasses must have the same number of arguments in overriden methods
+and in addition should not make the arguments in subclasses more specific(can be either the same type of
+arguments had in super class or the type can be super type. the type can't be subtype) than the arguments
+ in the super class.
+2. covariance of result: either both subclasses and super classes return a result or neither does.
+and in addition should not make the type of the result in a subclass more general(the type can be the same
+type which super class had or it can be subtype. the return type in subclass overridden method cant be supertype) than in the super class.
+3. Exception Rule: subclasses should not throw new types of exceptions. clients of the existing super class
+might not be able to handle these new types of exceptions
+--------------------------------------------------------------------------------------------------
+
+METHOD PRE-POST CONDITION RULES (Rule 4 and 5)
+----------------------------------------------------
+PRE CONDITION RULE : An assertion about the state of the system before the method is called.
+"whatever statement we can make about the state of the system before a method is called thats 
+ the methods pre-condition"
+Main Rule : "Pre conditions required by methods of a subclass must not be stronger than
+	Pre conditions required by methods of a super class."
+Rule of Thumb: "a subclass should be able to operate in all states that a superclass can operate in"
+Eg: 
+
+		Service Class <================= ServiceSub class
+		doSomething(ClassArg) <========= doSomething(ClassArg) (overridden method)
+ the Argument to doSomething() which is classArg in Service class can be a valid reference / null. it can
+ handle for both the type of inputs.  However the Argument to doSomething() which is classArg in ServiceSub class
+ should be a valid reference and it cannot handle null. if it receives null, something will break / functionality 
+ wont work, serviceSUb cannot handle "null" in doSomething(). ServiceSUb is not a proper subtype of Service, 
+ because ServiceSub requires stronger pre-conditions / requires more conditions than its super class method
+ implementation.
+ "A State mentioned in rule statment means its more global" : If Service can work when some specific other class
+ is not initialized But ServiceSub class requires it to be initialized then it breaks the pre-condition rule.
+ Because ServiceSub has more/stronger preconditions than Service
+
+
+POST CONDITION RULE :  An assertion about the state of the system after method execution completes.
+"post-condition guarenteed by methods of a subclass mustn't be weaker than post-condition guarenteed by 
+methods of a superclass"
+Rule of Thumb: "Clients shouldnt be surprised by the results of invocation of methods of a subclass"
+	Service Class <================= ServiceSub class
+		doSomething():ClassArg <========= doSomething():ClassArg 
+
+	The return value of doSomething() of super class (Service) promise a valid reference all the time
+	but the return value of doSomething() of sub class (ServiceSub) can return a valid reference / null
+	This violates the post condition rule, and ServiceSub cant be a proper subtype of Service because of 
+	weaker post conditions. Because of this client code works properly with Service class but it can break 
+	of the ServiceSub class of the weaker post condition(null returned by doSomething() of ServiceSub class)
+
+	More Global Effect Example Scenario: Invocation of doSomething() of service will cause the system to get
+	initialized in a very special way because of the return value of ClassArg. But invocation of doSomething()
+	of ServiceSub class can effect the system in a very different way which may effect the system behaviour
+	which clearly proves that ServiceSub cant be a proper subtype of Service class.
+
+Post Condition rule will prevent clients from being surprised of the results of invocation of a method which 
+is being overridded by a subclass and provides weaker post conditions.
+-------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------
+CLASS PROPERTY RULES: (2 Rules)
+1. Invariant Rule. (Invariance of superclass must be preserved by the subclasses)
+2. Constraint Rule. (Constraints of super class must be preserved by the subclasses)
+
+Invariant : An Assertion about a specific class property which is always TRUE
+
+BoundedQueue : Its a Queue data structure with FIFO principle, but with limited(bounded) number of elements
+Invariant of Bounded Queue : (Number of elements in queue <= capacity(Max No Of Elements)) which is TRUE
+								for all instance of BoundedQueue all instances. Here its always TRUE that 
+								the no of elements should always be less than its capacity 
+
+LSP INVARIANT (RULE-1) : "Invariant guarenteed by a subclass must include all invariants guarenteed by a superclass"
+
+Eg:
+			BoundedQueue(SuperClass) <----------------------------------- DuplicatingQueue(Subclass)
+	Eventhough DuplicatingQueue extends/ subtype of BoundedQueue, DuplicatingQueue to obey LSP and to be
+	a proper subtype of BoundedQueue it has to follow the invariant class rule. Eventhough DuplicatingQueue
+	has extra functionality to duplicate and use elements inside the queue, it should strongly obey/follow
+	the invariant rule of the BoundedQueue(Number of elements in queue <= capacity(Max No Of Elements)). If
+	DuplicatingQueue breaks the InvariantRule then it cant be a proper subtype of BoundedQueue and it cant be
+	used in places where we were using BoundedQueue( If DuplicatingQueue doesnt strictly limit the elements
+	in queue to be less than its capacity it can break the client functionality where it followed while using
+	BoundedQueue)
+
+
+RULE-2:
+Constraint: An assertion about how a class property eveolves over time.
+
+Invariant Characteristics:
+1. Independent of History (invariants are always true).
+2. Invariants are easy to identify and reason about(Invariants always hold/fixed, they never change)
+3. using invariants we can't express the dynamic properties of the class.
+
+Constraints explained using BoundedQueue:
+If the capacity doesnt change for all the objects created for BoundedQueue then the capacity is Invariant. 
+
+If the capacity can be changed for every object(Eg: we can mention capacity while creating the object, once the 
+object is created then we cant modify its value) then the property capacity is Constraint because it can be changed for every object before creating the object. If the capacity is not taken as input while creating an object and its
+hardcoded to be a fixed value for all objects then it becomes Invariant.
+
+Ex;2 MessageErrorDetector(processing messaged at some point it detects an error in message and returns True if found)
+This class has to behave in a way like, once it detects an error in a message the class should remain in this
+state forever.
+
+LSP Constraint Rule: "Constraints enforced by a subclass must include all constraints enforced by a super class"
+
+Eg: MessageErrorDetector (SuperClass) <---------------------------- ResetMessageErrorDetector (SubClass)
+	
+	Super class MessageErrorDetector class behave in a way like, once it detects an error in a message the class should remain in this state forever. But subclass ResetMessageErrorDetector class introduce a method reset() to reset its state of error detected. Since it breaks the constraint of SuperClass by providing a method to reset 
+	its state, it cant be a proper subtype of its super class MessageErrorDetector. 
+
+	If the client uses MessageErrorHandler and beleives its state, if its subtype ResetMessageErrorHandler is passed in place of MessageErrorHandler and if the subtype state is modified by some other entitiy in the application it causes some code in client to Break.
+
+LSP Summary:
+Subclass / Realization which can be substituted for the type it extends / implements
+
+Couple of condition which should be satisfied to make the above statement to happen:
+a. Method Rules: (which apply to all individual methods in subclasses)
+1. Contravariance Of Arguments: 
+2. CoVariance of Result.
+3. Exception Rule.
+4. Pre-Condition Rule.
+5. Post-Condition Rule
+
+b. Class Rules:
+6. Invariant Rule.
+7. Constraint Rule.
+
+Note: Must Read Book: "Effective Java - Programming Language Guide - Joshua Bloch"
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+4. INTERFACE SEGGREGATION PRINCIPLE
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+ISP: Its states that "Clients shouldn't be forced to depend on methods they don't use
+
+Service Class (method1(), method2()) -------------------------------. used by 
+						Client1, Client2
+
+client1 and client2 depends on Service class instance. 
+
+Client1 only uses method1(), Client2 only uses method2(). If we provide Service instance to Client1 and 
+Client2. Client1 doesnt uses method2() but he is been exposed with that interface. Client2 doesnt uses
+method1() but he is been exposed with method1() from the provided interface.
+
+Remove Dependency of Service Class in Client1 and Client2 by Introducing different abstractions Service1(I)( method1()) and Service2(I)(method2())
+
+Hence client1 uses only Service1(I) and client2 uses only Service2(I)
+
+Service is made to Realize / implement Service1(I) and Service2(I) and provide the implementation, but
+Client1 and Client2 is unaware of Service Class, it just only talks to the abstractions (service1 and service2)
+Service interface is segregated into two seperate abstractions
+
+"This principle will guide to segregate the interface into smaller interfaces and make them a narrow
+	as possible for clients to use" 
+
+
+Publish Subscribe pattern:
+
+"Source"                                                                "Target"
+		Source needs to send messages to Target, but shouldnt depend on it.
+		Source shouldnt not know anything about Target. (Target cant be defined currently, it will be defined
+		in Future). Source cant depend on Target(Because target is not yet defined).
+
+		In such situation we can go for a solution using EventBus(Its the simplest implementation of publish subscribe pattern).Eventbus contain/defined abstract/Interface called "Subscriber"->onEvent(Event) method
+
+
+                                                    EventBus will notifies all its subscribers when it receives
+                                                    Publish from Source			
+			Source------------------------>EventBus(I)-------------------------->"Target" implements Subscriber
+						publish(Event)		subscribe(Subscriber)  <-------------(target subscribes to EventBus)
+											unsubscribe(Subscriber)
+											publish(Event)
+											Interface Subscriber {
+												onEvent(Event)
+											}
+			(Theres no direct dependency from source to Target), EventBus depends on Subscriber abstraction
+			this dependency on some abstraction that future clients will realize is what allows EventBus to
+			be so versatile and work eventhough it doesnt know anything about the future realizations.
+			This "publish-subscribe" pattern follows "OPEN-CLOSE" principle.	
+
+				Source                   	  Target                      EventBus                Time
+				  |                        		|                            |                      |
+				  |								|---subscribe(this)--------->|                      |
+				  |								|							 |                      |
+				  |								|							 |                      |
+				  |============publish(Event)===============================>|                      | 
+				  |								|							 | notify subscibers    |
+				  |								|							 |---   about new       |
+				  |								|		                     |<-|    event          |
+				  |								|							 |                      |
+				  |								|							 |                      |
+                  |                             |<--------onEvent(Event)-----|                      |
+				  |								|							 |                      |
+				  |								|							 |                      v
+
+			EventBus cant make your code unmaintenable. If there are several classes and an eventbus. 
+			All classes communicate to each other via event bus in sequence which will cause some kind
+			of disctributed flow between multiple classes in the application which is defined thorugh
+			evenbus and events exchanged between classes. event flow of such clumsy kind are extremely
+			difficult to maintain. Tough to debug and find cause of a bug. Tough to read and understand.
+
+			How to figure out and avoid such nuisance of publish-subscriber?
+				classes that are both publisher and subscriber are code smell. avoid classes that receive 
+				and also publish on EventBus. This can be further cleaned up using INTERFACE SEGREGATION
+				principle.
+
+
+			EventBusPublisher(C)------------->EventBus(I)----------------------------->EventBusSubscriber(C)
+				publish(Event)				subscribe(Subscriber)        			subscribe(subscriber)
+					^						unsubscribe(Subscriber)					unsubscribe(Subscriber)
+					|						publish(Event)                                    ^
+					|						Interface Subscriber {							  |
+				Publisher						onEvent(Event)                                |
+											}											Subscriber 
+
+			Introduce 2 new classes EventBusPublisher and EventBusSubscriber by segregating the interface of
+			EventBus. Still Eventbus will act as the center point of communication, but the two new classes
+			will simply delegate the respective calls to the EventBus Instance. Whenever the classes in the 
+			project depends on EventBusPublisher we can clearly confirm that the class just does a publish
+			activity to EventBus(no need to worry / get doubt that it can receive from eventbus) we can 
+			pretty much sure on code review and clean code. If we have classes that uses EventBusSubscriber
+			we can confirm that these class just subscribe to EventBus and receive events from EventBus and 
+			doesnt do the publish activity to EventBus. This segregation will make code maintenable and easily
+			readable and maintenable.
+			Classes that depend on different objects(EventBusSubscriber / EventBusPublisher) will do just one
+			single thing with EventBus
+
+ISP Example, Callback Interface:
+	Main System <-------------------------------------------------------> SubSystem-X			
+
+	XService class which handled the communication with SubSystem-X
+	public class XService {
+		public void registerListener(XListener listener) {
+			.........
+		}
+		public void unregisterListener(XListener listener) {
+			.........
+		}
+	}
+	XService class is Observable, client from SubSystem-X which are Interested in receiving events could 
+	register themselves as listeners.
+
+	interface XListener {
+		void onMessageA();
+		void onMessageB();
+		void onMessageC();
+		void onMessageD();
+		...
+	}
+	public class Client1 implements XListener {
+		private XService xservice;
+		public Client1(XService service) {
+			this.xservice = service;
+		}
+		public void init() {
+			xservice.registerListener(this);
+		}
+		@Override
+		public void onMessageA() {
+			// Uses only MessageA, but unnecessarily listens to other messages also (MessageB, MessageC, MessageD)
+			// but unused / unimplemented
+		}
+		@Override
+		public void onMessageB() {
+			// unused / unimplemented
+		}
+
+		@Override
+		public void onMessageC() {
+			//unused / unimplemented
+		}
+		@Override
+		public void onMessageD() {
+			//unused / unimplemented
+		}
+	}
+
+	Most of the implementations of XListener(I) are empty(onMessageB(), onMessageC(), onMessageD()) for Client1, Client1 just interested on only on very few messages(onMessageA())
+
+	XListener(I) must be segregated. To Segregate we go by introducing separete interfaces for methods and 
+	introduce respective observable service for clients
+
+	Segregate Interface for MessageA method
+		interface MessageAListener {
+			void onMessageA();
+		}
+
+	Introduce a observable Service which act as Service(It provides support / service for only a particular method. So the clients which requires service for only that particular method can use this Service instead of XService) for clients and it itself will act as a Client(it gets notified for events from XService) to existing XService class.
+
+	This Dispatcher is reponsible for receiving messages from XService and then dispatching just messageA to all
+	the registered listeners. Similar to the below message dispatcher we can also extract seperate interface and 
+	dispatcher classes for onMessageB(), onMessageC(), onMessageD().
+
+	public class MessageADispatcher implements XService {
+		private XService xservice;
+		private MessageAListener listeners;
+
+		public Client1(XService service) {
+			this.xservice = service;
+		}
+
+		public void init() {
+			xservice.registerListener(this);
+			listeners = new ArrayList<MessageAListener>();
+		}
+
+		public void registerListener(MessageAListener listener) {
+			listeners.add(listener);
+		}
+		public void unregisterListener(MessageAListener listener) {
+			listeners.remove(listener);
+		}		
+		@Override
+		public void onMessageA() {
+			// Notifies to clients who are interested to get only messageA notifications
+			for (MessageAListener listener : listeners)
+				listener.onMessageA();
+		}
+		@Override
+		public void onMessageB() {
+			// UnImplemented /Not intend to Define/ this Service class will only support clients interested MessageA
+		}
+
+		@Override
+		public void onMessageC() {
+			// UnImplemented /Not intend to Define/ this Service class will only support clients interested MessageA
+		}
+		@Override
+		public void onMessageD() {
+			// UnImplemented /Not intend to Define/ this Service class will only support clients interested MessageA
+		}
+	}
+
+After Introducing above MessageADispatcher, Client1 no longer needs to use service of XService(it has problem of unnecessarly listening for onMessageB(), onMessageC() and onMessageD() even when its not using it) it can use MessageADispatcher.
+
+public class Client1 implements MessageAListener {
+		private MessageADispatcher messageADispatcherservice;
+		public Client1(MessageADispatcher service) {
+			this.messageADispatcherservice = service;
+		}
+		public void init() {
+			messageADispatcherservice.registerListener(this);
+		}
+		@Override
+		public void onMessageA() {
+			// Now client1 will just listens to MessagesA
+		}
+}
+
+Similarly now Client2 needs to looks for 2 different message will register itself to 2 different dispatchers
+
+
+public class Client2 implements MessageBListener, MessageDListener {
+		private MessageBDispatcher messageBDispatcherservice;
+		private MessageDDispatcher messageDDispatcherservice;
+		public Client1(MessageBDispatcher serviceB, MessageDDispatcher serviceD) {
+			this.messageBDispatcherservice = serviceB;
+			this.messageDDispatcherservice = serviceD;
+		}
+		public void init() {
+			messageBDispatcherservice.registerListener(this);
+			messageDDispatcherservice.registerListener(this);
+		}
+		@Override
+		public void onMessageB() {
+			// Now client2 will listens to MessagesB
+		}
+		@Override
+		public void onMessageD() {
+			// Now client2 will listens to MessagesD
+		}
+}
+
+In This way the clients will just listens to messages which they are interested in, not required to listens to
+all messages from XService and then use only they need (This is the power of interface segregation principle).
+
+After following this approach all clients will have the following advantages:
+1. Explicit and clear dependencies on their code
+2. More readable code without puzzling empty methods
+3. Easy to find all clients who are interested in a specific message (debugging easier)
+4. safe and easy to add new message type in future.
+
+"The moment you have a Distributed System, you need to exchange messages between different sub-systems, in such cases INTERFACE-SEGREGATION PRINCIPLE will make system more maintenable"
+
+"INTERFACE SEGREGATION PRINCIPLE SUMMARY":
+ISP is a principle of least knowledge and information hiding. (classes should know as little as possible about
+their collaborators(person who works jointly on an activity))
+
+1. It allows, communicate what clients do with their service. (By just seeing the defenition of client
+"class Client2 implements MessageBListener, MessageDListener" it communicates to developers that it depends/process/handles MessageB and MessageD) 
+(Instead of depending on big and generic interfaces, clients will become dependent on narrowly focused interfaces and its more readable to developer about what clients do from the list of dependencies)
+
+2. It allows, communicate what clients don't do with their service. (By just seeing the defenition of client
+"class Client2 implements MessageBListener, MessageDListener" it communicates to developers that it doesn't depends/process/handles MessageA and MessageC)
+
+3. With the combination of above 2 principles, ISP "Restricts what client can do with their services"
+
+4. Segregated Interfaces allow to Segregate Functionality if / when needed
+(when refactoring a big class which has several methods used by all services. To refactor such a class, identify the 
+unique responsibilities used by the services and segregate those in form of interfaces. Once all responsibilities are grouped by segregated interfaces. The services uses this class, is replaced with the responsibilities segregated as interfaces. After that the segregated interfaces and code is moved out as seperated blocks from the big class to
+narrow down its usage and clean it)
+
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+5. DEPENDENCY INVERSION PRINCIPLE
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+Principle states that : High-Level modules should not depend on Low-Level Modules. Both should depend on
+						Abstractions.  
+						(AND)
+						Abstractions should not depend on details . Details should depend on Abstractions.
+
+Top-Down Design:
+		The business domain requirement of classes are extracted into a seperate class called 
+		"BusinessDomainClass" adding logic to this class to acheive the required functionality. While implementing
+		we come across to find out several distinct responsibilities. (App involves to connect to external site,
+		process the data, may need to persist the data, may required to show some to user), all these distinct
+		responsibilities are extracted to standalone classes(according to single responsibility principle). Some
+		distinct responsibility may grow big which force us to further extract distinct functionalities as stand
+		alone classes.
+
+												"BusinessDomainClass"
+												         /\
+												        /  \
+												       /    \
+												      /      \
+												     /        \
+								          FunctionalClass1    FunctionalClass2
+								                  /\
+								                /    \
+								               /      \
+								             /          \
+								            /            \
+                              FunctionalClass3 --------> FunctionalClass4
+
+	Extract functionalities into stand-alone classes until all classes follow "Single Responsibility Principle".
+	This approach of developing features / business domain functionality will grow up into "Hierarchy of Classes"
+
+	This Hierarchy represents,
+		1. 	Interdependencies between the classes (BusinessDomainClass depend on FunctionalClass1 and which inturn
+		depend on FunctionalClass3 and FunctionalClass4).
+		2. Hierarchy will also shows how the instance of classes which invoke each other at runtime. (BusinessDomainClass instance on runtime will invoke some methods of FunctionalClass1 instance and FunctionalClass2). This shows the runtime "flow of Control" goes from top to bottom(BusinessDomainClass to FunctionalClass1 and FunctionalClass2, From FunctionalClass1 to FunctionalClass3 and FunctionalClass4). 
+		"Flow of Control" is same as saying class-x involves methods on class-y at runtime.
+
+	Introducing Abstractions:
+												TopLevelClass														
+													 |															
+													 |															
+													 |																
+													 v																
+												MiddleLevelClass                           						
+													 /\                             							
+													/  \                                       				
+												  /      \                                 						
+												 /         \                          						
+                                                /			\
+                                                |            |                              				
+                                                v            v
+                                  BottomLevelClass1 ------>	 BottomLevelClass2                                   	
+
+TopLevelClass uses midLevelClass, MidLevelClass uses BottomLevelClass1 and BottomLevelClass2.
+
+Now refactoring in a way like TopLevelClass dependency with MiddleLevelClass is removed, Now ToplevelClass will never know about MiddleLevelClass at Compile time with the introduction of abstraction between TopLevelClass and MiddleLevelClass. This abstraction is called "AbstractMidLevelClass" will represent some properties of MiddleLevelClass that TopLevelClass is interested in and then it abstract/hide out all irrelevent details.
+
+Now TopLevelClass will depend on this abstraction(AbstractMidLevelClass) and MiddleLevelClass will realize this 
+abstraction. Now we can see the dependency of MiddleLevelClass and AbstractMiddleLevelClass points in the opposite direction. After introduction of abstraction we could see the "Dependency is Inverted" thats the reason this principle is called "Dependency inversion principle"
+
+												TopLevelClass														
+													 |															
+													 v
+											AbstractMidLevelClass (Interface / Abstract Class)
+													 ^
+													 |																
+												MiddleLevelClass                           						
+													 /\                             							
+												____/  \______                                       				
+                                                |            |                              				
+                                                v            v
+                                  BottomLevelClass1 ------>	 BottomLevelClass2                    
+
+""Once you introduce abstraction into the hierarchy of classes, some of the dependencies will be inverted"".
+MiddleLevelClass depends on AbstractMiddleLevelClass and theres no direct chain of dependencies from TopLevelClass
+to MiddleLevelClass anymore. At Runtime "flow of control" still goes from TopLevelClass to MiddleLevelClass. In other words, at compile time TopLevelClass will know only about AbstractMiddleLevelClass, at runtime it will call the methods on the realization/implementation of AbstractMiddleLevelClass which is called MiddleLevelClass. Eventhough the Dependency is Inverted, the flow of control still goes from TopLevelClass to MiddleLevelClass (Thats the reason to call "Dependency Inversion Principle" as "Balanced Inversion Principle")
+
+Once Abstrations are introduced in hierarchy of classes, some dependencies will be inverted.
+
+Benefits of Using Dependency Inversion:
+	Open Close Principle: 
+		KarokePlayer --> LyricsParser
+
+	at some point we could identify that LyricsParser functionality will change a lot in future. if we have intension to use several different implementations of LyricsParser. To handle this situation we make
+	LyricsParser as an abstraction. This LyricsParserAbstractClass will capture only the high level interaction
+	details between the KarokePlayer and some kind of Parsing Logic (this parsing logic is encapsulated inside
+	the realizations of LyricsParserAbstractClass) which is the implementations of LyricsParserAbstractClass
+			KarokePlayer --> LyricsParserAbstractClass
+			                            ^
+			                            |
+			                      LyricsParserImpl .... can have several Implementaions of LyricsParserAbstractClass
+
+As long as the LyricsParserAbstractClass doesnt change, KarokePlayer is protected from changes in parsing
+functionality. This protection of changes is acheived only because theres no direct dependency from KarokePlayer
+and LyricsParserImpl (Realization of LyricsParserAbstractClass) and internally we could notice that dependency 
+from LyricsParserImpl to LyricsParserAbstractClass is inverted (Internally we used DependencyInversion principle
+here to protect KarokePlayer from future changes of LyricsParser)
+
+Open-Close principle by itself is predicated(its based something on) on DependencyInversion principle.
+
+Benefits :: * provides protection from changing requirements. 
+
+EXAMPLE OF DEPENDENCY INVERSION PRINCIPLE (CALLBACKS)
+
+class Client {
+	private Service service;
+
+	public void doSomething() {
+		doSomethingPhaseOne(); //Step 1
+		service.doSomethingAsync(this); // Step 2
+	}
+
+	private void doSomethingPhaseOne() {
+
+	}
+	private void doSomethingPhaseTwo() { //Step 3 : should be called from Service.doSomethingAsync() after its task
+
+	}
+}
+
+public class Service {
+	public void doSomethingAsync(Client client) {
+	  // this method relevant functionality to be executed here.
+	  ......
+	  ......
+	  client.doSomethingPhaseTwo(); // notifies the Client back with the status of operation performed here.
+	}
+}
+
+doSomething() function in Client class needs to perform 3 steps. step1(doSomethingPhaseOne()), step2(call service.doSomethingAsync() functionality), step3 (after performing service.doSomethingAsync() functionality, from that method need to invoke doSomethingPhaseTwo() from service.doSomethingAsync() method end).
+
+Problem with the above implementation:
+1. Client knows about Service class, but Service class also knows about Client. When 2 classes interdependent on each other is called Circular Dependency. Because of this dependency, Service class cant be used by other clients
+its been tightly coupled to one specific client. If any other client wants to use the Service class, its impossible. Because we are allowed to pass only Client(Class) instance to Service class. Hence this functionality of doSomethingAsync(Client client) in Service class cant be re-used.
+2. Control flow will go from Client class to Service Class(doSomethingAsync()) and then control comes back to Client class(doSomethingPhaseTwo()) from Service class, to understand this control flow have to read the entire implementation of Client and Service class. only if we visit Service class and read the implementation of doSomethingAsync() method, we will understand the control returns back to Client class (doSomethingPhaseTwo()).
+
+To solve the above problems of CircularDependency(), we introduce an abstraction to be passed to Service->doSomethingAsync method to make it generic to accept any client who realise the abstraction method parameter.
+
+	class Service {
+		interface Callback {
+			void onDoSomethingAsyncDone();
+		}
+
+		public doSomethingAsync(Callback cb) {
+		  // this method relevant functionality to be executed here.
+		  ......
+		  ......
+		  cb.onDoSomethingAsyncDone();	
+		}
+	}
+Now, Service is not dependent on particulat Client class, its dependent on abstraction(Callback(I)) now. Client which needs to get communicated back by the Service needs to realize the abstraction defined by the Service.
+This way, Service can send back notification to Clients without being dependent on Client / doesnt need to know about client at compile time.
+
+Now theres no chain of dependencies from Service to Client. Changing the Parameter of Service class doSomethingAsync() parameter from Client(Class) to Callback(Interface) makes the Dependency inverted with respect to flow of control. 
+Previously when we were accepting Client Class as parameter we are very much dependent on the particular Client instance to notify the computed Async Result. After changing it to Abstraction(Callback) we are no more dependent on a particular Client, we are allowed to notify any Client about the Async Result (Dependency Inverted).
+
+
+class Client {
+	private Service service;
+
+	public void doSomething() {
+		doSomethingPhaseOne(); //Step 1
+		service.doSomethingAsync(new Service.Callback() {
+			public void onDoSomethingAsyncDone() {
+				doSomethingPhaseTwo();
+			}
+		}); // Step 2
+	}
+
+	private void doSomethingPhaseOne() {
+
+	}
+	private void doSomethingPhaseTwo() { //Step 3 : should be called from Service.doSomethingAsync() after its task
+
+	}
+}
+
+Now looking at Client code we can understand the code easily, that Service class will call back the doSomethingPhaseTwo() method. we dont need to visit and explore the Service class and find out that will invoke
+doSomethingPhaseTwo(). Its more Readable. We can also make doSomethingPhaseTwo() method as private method, so that avoid it unnecessarily expose outside. Making Client class more encapsulated Robust.
+
+Now Service class will not be aware of a specific client, its not tightly coupled to a Specific Client class. Its more generic, any client can avail and reuse the Service class doSomethingAsync() functionality.
+
+"DEPENDENCY PRINCIPLE CONTRIBUTES TO REUSABILITY"
+
+
+----------------------------------------------------------
+Dependency Inversion Principle (Inter-Dependent Modules): 
+----------------------------------------------------------
+
+										Module A       ----------->        Module B
+									(Main Functionality)             (Secondary Services)
+									(Developed by Team-A)			(Developed by Team-B)
+
+Module can be (Group of classes /  package / module / application / binary executable). Team-A very much dependednt on the work or delivery from Team-B. 
+* Team-A is directl affected by the schedule of Team-B. Delay in schedule by Team-B is immediately reflected/added to Team-A delivery.
+* Team-A dont have control over the interfaces and semantics of the services. Team-B which they are supposed to deliver, can change the services structure at any time. Team-A has no control on sharing their views / provide inputs about the services they expect from Team-B. 
+* Team-A cant finish their task before Team-B
+
+*** can Team-A can avoid / find an alternate way to avoid the above risks? "Using DIP they can!!!"
+
+									Module-A               Module-B
+											-------------> Service-1
+											-------------> Service-2
+											-------------> Service-3
+Module-A depends on Service 1, 2 and 3 from Module-B which is the reason to cause all the above mentioned problems
+
+Module-A / Team-A can use DIP to solve the dependency problem by introducing Abstractions.
+
+									Module-A               Module-B
+          						Service-1(AC)------------> Service-1
+								Service-2(AC)------------> Service-2
+								Service-3(AC)------------> Service-3
+Now, Team-A will depend on the internally defined Service-1, 2, 3 (AC) and continue with the implementation, but now
+Module-B / Team-B when implementing the actual services from their side should (realize the abstractions / implement the interfaces) defined by the Module-A/Team-A
+
+Defining these abstractions by Module-A/Team-A and asking Module-B/Team-B should implement the defined abstractions/interfaces inverted the dependencies between modules (previously Module-A was depending Module-B implementation/delivery, but now Module-B is dependent on Module-A from abstractions to confirm )
+
+How Team-A / Module-A is benifited from defining the Abstractions.
+* Now Team-A / Module-A can define fake/dummy realizations internally, this benefit the Team-A to proceed on designing and finilizing their own module(even when Module-B / Team-B didnt complete the implementation of the services-1 , 2 , 3). Inverting dependencies gave privilege to Team-A. Module-A to break dependency on the schedule
+of release of the Services-1,2,3 by Team-B. 
+* Since the abstractions (Service-1, 2, 3 (Abstract Classes / Interfaces)) defined and controlled with in the domain of Team-A/Module-A. They can go ahead and write Acceptance test cases for these 3 services. When Team-B/Module-B release the actual implementation of the services along with the implementation/realization of abstractions defined by Team-A/Module-A. Team-A/Module-A will be ready with the already defined test cases and they willl be able to verify the functionality released by Team-B/Module-B
+
+							Module-A                       Module-B
+          	Service1Test ------>Service-1(AC)------------> Service-1
+			Service2Test ------>Service-2(AC)------------> Service-2
+			Service3Test ------>Service-3(AC)------------> Service-3
+
+Now the situation is Team-A/Module-A gained control over the defined abstractions allow them to write test cases and it will also lead to easier integration of Module-B delivery.
+
+* The inversion of dependencies benefit the organization with increased visibility and better accountability. (Module-A dont need to wait for the delivery of module-B they can continue with the defined abstraction/Interface and even define fake implementation for the defined abstractions and continue defining test-cases and complete their work. Now organization have clear road-map of the release of the entire work)
+
+* Inverting the dependencies has hugely benefit Team-A/Module-A and it also benefit Team-B in some perspective. It made the team-B work simpler, Team-B dont have a burden to assume the requirements of Team-A and then design and implement the services-1,2,3. Now they have clear picture about the need/requirements of Team-A and they just need to implement the Interfaces defined by Team-A and design the services-1,2,3 based on the abstractions. Also Team-B can reuse the acceptance tests defined by Team-A for the Services defined by Team-B.
+
+In some situations / programming languages we will not be able to define abstractions with in Module-A and make them available to Module-B and then use the realizations defined/released by Module-B inside Module-A. In such situations
+
+             Module-A		     Module-C                   Module-B
+          				 ------>Service-1(AC)------------> Service-1
+			             ------>Service-2(AC)------------> Service-2
+			             ------>Service-3(AC)------------> Service-3
+Defined Module-C and define all the abstraction which Module-A expects, then make Module-A to depend on Module-C Abstractions.
+
+DIP Benefits in Multi-Team Project:
+1. Break Dependency on the schedule of another component.
+2. Easier Intergration
+3. Increase Visibility and Accountability.
+
+All the team participate in this situation of introducing and Using DIP will get benifited from using DIP.
+Organisation will also get benefited of using DIP because of Visibility and Accountability is Acheived.
+
+------------
+DIP Summary:
+------------
+
+DIP advocates for "Stratergic use of Abstractions" with in application.
+Benefits of DIP:
+1. Protection of code from "change in requirements which happen in future" .
+2. Make stand alone components "Reusable".
+3. Whenever we have external dependencies use DIP to break dependency in module. Easier integration with the 
+external modules.
+4. Use of DIP will increase visibility and accountability at organisational level.
+
+"Its not a good idea to use DIP everywhere, It has its own problems and cost"
+
+DIP Costs: 
+1. more effort to implement.
+2. more effort to change the abstractions if they needed to change in future.
+3. If we make mistake and extract wrong abstractions. Which are much more costly than NO abstraction at all.
+4. DIP will increase code, and make code more complex because of indirection. using too many abstraction and invert too many dependencies 
+5. "Dont use DIP for the sake of Using it". "Invert Dependencies only when benefits outweigh the cost"
